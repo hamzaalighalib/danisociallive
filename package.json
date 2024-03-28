@@ -9,7 +9,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-   "dependencies": {
-    "node-media-server": "^2.6.2",
+  "dependencies": {
+    "node-media-server": "^2.6.2"
   }
 }
