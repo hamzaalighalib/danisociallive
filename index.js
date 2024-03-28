@@ -16,17 +16,17 @@ const config = {
 
 var nms = new NodeMediaServer(config);
 
-// Function to redirect console logs to the document
-function redirectConsoleToDocument() {
-  const originalConsoleLog = console.log;
-  console.log = function (message) {
-    document.write(`<p>${message}</p>`);
-    originalConsoleLog.apply(console, arguments);
-  };
-}
+// // Function to redirect console logs to the document
+// function redirectConsoleToDocument() {
+//   const originalConsoleLog = console.log;
+//   console.log = function (message) {
+//     document.write(`<p>${message}</p>`);
+//     originalConsoleLog.apply(console, arguments);
+//   };
+// }
 
-// Redirect console logs to the document
-redirectConsoleToDocument();
+// // Redirect console logs to the document
+// redirectConsoleToDocument();
 
 nms.on('preConnect', (id, args) => {
   console.log(`[NodeMediaServer] Client connected: ${id}`);
