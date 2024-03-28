@@ -1,22 +1,3 @@
-const { createLogger, transports, format } = require('winston');
-const { combine, timestamp, printf } = format;
-
-const logger = createLogger({
-  format: combine(
-    timestamp(),
-    printf(info => {
-      return `${info.timestamp} ${info.level}: ${info.message}`;
-    })
-  ),
-  transports: [
-    new transports.File({ filename: 'server.log' })
-  ]
-});
-
-logger.info('Node Media Server is running');
-logger.info(`RTMP server URL: rtmp://localhost:${config.rtmp.port}/live`);
-logger.info(`HTTP server URL: http://localhost:${config.http.port}`);
-
 const NodeMediaServer = require('node-media-server');
 
 const config = {
@@ -35,36 +16,48 @@ const config = {
 
 var nms = new NodeMediaServer(config);
 
+// Function to redirect console logs to the document
+function redirectConsoleToDocument() {
+  const originalConsoleLog = console.log;
+  console.log = function (message) {
+    document.write(`<p>${message}</p>`);
+    originalConsoleLog.apply(console, arguments);
+  };
+}
+
+// Redirect console logs to the document
+redirectConsoleToDocument();
+
 nms.on('preConnect', (id, args) => {
-  logger.info(`[NodeMediaServer] Client connected: ${id}`);
+  console.log(`[NodeMediaServer] Client connected: ${id}`);
 });
 
 nms.on('postConnect', (id, args) => {
-  logger.info(`[NodeMediaServer] Client connected: ${id}`);
+  console.log(`[NodeMediaServer] Client connected: ${id}`);
 });
 
 nms.on('doneConnect', (id, args) => {
-  logger.info(`[NodeMediaServer] Client disconnected: ${id}`);
+  console.log(`[NodeMediaServer] Client disconnected: ${id}`);
 });
 
 nms.on('prePublish', (id, StreamPath, args) => {
-  logger.info(`[NodeMediaServer] Stream published: ${StreamPath}`);
+  console.log(`[NodeMediaServer] Stream published: ${StreamPath}`);
 });
 
 nms.on('donePublish', (id, StreamPath, args) => {
-  logger.info(`[NodeMediaServer] Stream unpublished: ${StreamPath}`);
+  console.log(`[NodeMediaServer] Stream unpublished: ${StreamPath}`);
 });
 
 nms.on('donePlay', (id, StreamPath, args) => {
-  logger.info(`[NodeMediaServer] Stream played: ${StreamPath}`);
+  console.log(`[NodeMediaServer] Stream played: ${StreamPath}`);
 });
 
 nms.on('postPlay', (id, StreamPath, args) => {
-  logger.info(`[NodeMediaServer] Stream stopped: ${StreamPath}`);
+  console.log(`[NodeMediaServer] Stream stopped: ${StreamPath}`);
 });
 
 nms.run(() => {
-  logger.info('Node Media Server is running');
-  logger.info(`RTMP server URL: rtmp://localhost:${config.rtmp.port}/live`);
-  logger.info(`HTTP server URL: http://localhost:${config.http.port}`);
+  console.log('Node Media Server is running');
+  console.log(`RTMP server URL: rtmp://localhost:${config.rtmp.port}/live`);
+  console.log(`HTTP server URL: http://localhost:${config.http.port}`);
 });
