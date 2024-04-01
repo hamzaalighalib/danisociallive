@@ -1,18 +1,20 @@
 {
-  "name": "livestream",
+  "name": "nodejs",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-    "engines": {
-    "node": "20.x"
-  },
   "scripts": {
-    "start": "node index.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "node-media-server": "^2.6.2"
+    "@types/node": "^18.0.6",
+    "express": "^4.19.2",
+    "node-media-server": "^2.6.2",
+    "socket.io": "^4.7.5",
+    "socketio": "^1.0.0",
+    "ws": "^8.16.0"
   }
 }
