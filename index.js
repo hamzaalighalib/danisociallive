@@ -3,9 +3,12 @@ const http = require('http');
 const { spawn } = require('child_process');
 const path = require('path');
 const app = express();
+const cors = require('cors');
 const server = http.createServer(app);
 const io = require('socket.io')(server);
 const  NodeMediaServer  = require('node-media-server');
+// Allow all origins
+app.use(cors());
 
 const config = {
   rtmp: {
