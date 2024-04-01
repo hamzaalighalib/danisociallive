@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+</head>
+<body>
+    <h1>Streamyard Clone</h1>
+    <div>
+        <video id="user-video" autoplay muted></video>
+        <button id="start-btn">Start</button>
+    </div>
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+    <script>
+        const userVideo = document.getElementById('user-video');
+        const startButton = document.getElementById('start-btn');
+
+        const state = { media: null };
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Socket.IO connection established');
+        });
+
+        startButton.addEventListener('click', () => {
+            const mediaRecorder = new MediaRecorder(state.media, {
+                audioBitsPerSecond: 128000,
+                videoBitsPerSecond: 2500000,
+                framerate: 25
+            });
+
+            mediaRecorder.ondataavailable = ev => {
+                // console.log('Binary Stream Available', ev.data);
+                socket.emit('binarystream', ev.data); // Send binary stream data to the server
+            };
+
+            mediaRecorder.start(25);
+        });
+
+        window.addEventListener('load', async () => {
+            const media = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+            state.media = media;
+            userVideo.srcObject = media;
+        });
+    </script>
+</body>
+</html>
