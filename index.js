@@ -1,10 +1,7 @@
-const http = require('http');
-const express = require('express');
 const WebSocket = require('ws');
 
-const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+// Create a WebSocket server
+const wss = new WebSocket.Server({ port: 3000 });
 
 // Store connected clients and their data
 const clients = new Map();
@@ -18,12 +15,11 @@ function broadcast(message, excludeClient) {
   });
 }
 
-
 // Function to broadcast user data to all clients
 function broadcastUserData() {
   const onlineUsers = Array.from(clients.values()).filter(user => user.status === "online");
   const onlineUsersJSON = JSON.stringify(onlineUsers);
-  broadcast(onlineUsersJSON, wss);
+  broadcast(onlineUsersJSON);
 }
 
 // Handle incoming WebSocket connections
@@ -60,11 +56,11 @@ wss.on('connection', (ws) => {
         }
       }
     } catch (error) {
-      //if data is other...
+      // If data is other...
       broadcast(Buffer.from(data).toString('utf-8'), ws);
       console.error('Invalid user data received from the client:', error);
     }
-    broadcast(Buffer.from(data).toString('utf-8'),ws);
+    broadcast(Buffer.from(data).toString('utf-8'), ws);
   });
 
   // Handle client disconnect
@@ -75,17 +71,12 @@ wss.on('connection', (ws) => {
     clients.delete(ws);
 
     // Notify all clients that someone has disconnected
-    broadcast('A client has disconnected.', ws);
+    broadcast('A client has disconnected.');
 
     // Broadcast user data to all clients
     broadcastUserData();
   });
 });
 
-app.get('/', (req, res) => {
-  res.send('WebSocket server is running.');
-});
-
-server.listen(3000, () => {
-  console.log('WebSocket server is listening on port 3000');
-});
+// Log server is running
+console.log('WebSocket server is listening on port 3000');
