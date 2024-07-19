@@ -1,122 +1,91 @@
-const express = require('express');
 const http = require('http');
-const { spawn } = require('child_process');
-const path = require('path');
+const express = require('express');
+const WebSocket = require('ws');
+
 const app = express();
-const cors = require('cors');
 const server = http.createServer(app);
-const io = require('socket.io')(server);
-const  NodeMediaServer  = require('node-media-server');
-// Allow all origins
-app.use(cors());
+const wss = new WebSocket.Server({ server });
 
-const config = {
-  rtmp: {
-    port: 1935,
-    chunk_size: 60000,
-    gop_cache: true,
-    ping: 60,
-    ping_timeout: 30,
-    allow_origin: '*'
-  },
-  http: {
-    port: 5000,
-    allow_origin: '*'
-  },
-};
+// Store connected clients and their data
+const clients = new Map();
 
-const nms = new NodeMediaServer(config);
-nms.run();
+// Function to send a message to all clients
+function broadcast(message, excludeClient) {
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN && client !== excludeClient) {
+      client.send(message);
+    }
+  });
+}
 
-nms.on('prePublish', (id, StreamPath, args) => {
-  console.log('[NodeEvent on prePublish]', `id=${id} StreamPath=${StreamPath} args=${JSON.stringify(args)}`);
-});
 
-nms.on('donePublish', (id, StreamPath, args) => {
-  console.log('[NodeEvent on donePublish]', `id=${id} StreamPath=${StreamPath} args=${JSON.stringify(args)}`);
-});
+// Function to broadcast user data to all clients
+function broadcastUserData() {
+  const onlineUsers = Array.from(clients.values()).filter(user => user.status === "online");
+  const onlineUsersJSON = JSON.stringify(onlineUsers);
+  broadcast(onlineUsersJSON, wss);
+}
 
-console.log('Node Media Server started');
-app.use(express.static(path.join(__dirname, 'public')));
+// Handle incoming WebSocket connections
+wss.on('connection', (ws) => {
+  console.log('Client connected');
 
-io.on('connection', (socket) => {
-    console.log('Client connected');
+  // Send all user data to the new client, excluding the new client's data
+  const userDataArray = Array.from(clients.values());
+  const userDataJSON = JSON.stringify(userDataArray.filter(user => user !== clients.get(ws)));
+  if (userDataArray.length > 0) {
+    ws.send(userDataJSON);
+  }
 
-    let ffmpegProcess;
+  // Handle new user data sent by the client
+  ws.on('message', (data) => {
+    console.log(Buffer.from(data).toString('utf-8'));
+    try {
+      const userData = JSON.parse(data);
 
-    socket.on('binarystream', (data) => {
-        // console.log('Received binary data from client');
+      // Check if the user is already in the array
+      const userExists = Array.from(clients.values()).some(user => user.id === userData.id);
 
-        if (!ffmpegProcess) {
-          const ffmpegOptions = [
-            '-i', '-', // Input from stdin
-              '-c:v', 'libx264',
-              '-preset', 'ultrafast',
-              '-tune', 'zerolatency',
-              '-r', '25',
-              '-g', '50',
-              '-keyint_min', '25',
-              '-crf', '25',
-              '-pix_fmt', 'yuv420p',
-              '-sc_threshold', '0',
-              '-profile:v', 'main',
-              '-level', '3.1',
-              '-c:a', 'aac',
-              '-b:a', '128k',
-              '-ar', '32000',
-              '-f', 'flv', // Output format for RTMP
-              'rtmp://localhost:1935/live/hamza', // RTMP server URL, replace with actual server addr
-          ];
+      if (!userExists) {
+        clients.set(ws, userData);
 
-            // const ffmpegOptions = [
-            //     '-i',
-            //     '-',
-            //     '-c:v', 'libx264',
-            //     '-preset', 'ultrafast',
-            //     '-tune', 'zerolatency',
-            //     '-r', `${25}`,
-            //     '-g', `${25 * 2}`,
-            //     '-keyint_min', '25',
-            //     '-crf', '25',
-            //     '-pix_fmt', 'yuv420p',
-            //     '-sc_threshold', '0',
-            //     '-profile:v', 'main',
-            //     '-level', '3.1',
-            //     '-c:a', 'aac',
-            //     '-b:a', '128k',
-            //     '-ar', Math.floor(128000 / 4),
-            //     '-f', 'hls',
-            //     '-hls_time', '2',
-            //     '-hls_list_size', '3',
-            //     '-hls_flags', 'delete_segments+program_date_time',
-            //     '-start_number', '1',
-            //     'public/output.m3u8', // HLS output path in public folder
-            // ];
+        if (userData.status === "online") {
+          // Notify all clients that someone has connected
+          broadcast('A new client has connected.', ws);
 
-            ffmpegProcess = spawn('ffmpeg', ffmpegOptions);
-
-            ffmpegProcess.stdout.on('data', (data) => {
-                console.log(`ffmpeg stdout: ${data}`);
-            });
-
-            ffmpegProcess.stderr.on('data', (data) => {
-                console.error(`ffmpeg stderr: ${data}`);
-            });
-
-            ffmpegProcess.on('close', (code) => {
-                console.log(`ffmpeg process exited with code ${code}`);
-            });
+          // Broadcast user data to all clients
+          broadcastUserData();
+        } else {
+          broadcast(Buffer.from(data).toString('utf-8'), ws);
         }
+      }
+    } catch (error) {
+      //if data is other...
+      broadcast(Buffer.from(data).toString('utf-8'), ws);
+      console.error('Invalid user data received from the client:', error);
+    }
+    broadcast(Buffer.from(data).toString('utf-8'),ws);
+  });
 
-        ffmpegProcess.stdin.write(data, (error) => {
-            if (error) {
-                console.error(`Error writing to ffmpeg stdin: ${error}`);
-            }
-        });
-    });
+  // Handle client disconnect
+  ws.on('close', () => {
+    console.log('Client disconnected');
+
+    // Remove the user data of the disconnected client
+    clients.delete(ws);
+
+    // Notify all clients that someone has disconnected
+    broadcast('A client has disconnected.', ws);
+
+    // Broadcast user data to all clients
+    broadcastUserData();
+  });
 });
 
-const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-    console.log(`Express server running at http://localhost:${PORT}`);
+app.get('/', (req, res) => {
+  res.send('WebSocket server is running.');
+});
+
+server.listen(3000, () => {
+  console.log('WebSocket server is listening on port 3000');
 });
