@@ -1,10 +1,14 @@
 const http = require('http');
 const express = require('express');
 const WebSocket = require('ws');
+const cors = require('cors');  // Import CORS middleware
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
+
+// Apply CORS middleware to express app
+app.use(cors());
 
 // Store connected clients and their data
 const clients = new Map();
@@ -17,7 +21,6 @@ function broadcast(message, excludeClient) {
     }
   });
 }
-
 
 // Function to broadcast user data to all clients
 function broadcastUserData() {
@@ -60,11 +63,11 @@ wss.on('connection', (ws) => {
         }
       }
     } catch (error) {
-      //if data is other...
+      // If data is other...
       broadcast(Buffer.from(data).toString('utf-8'), ws);
       console.error('Invalid user data received from the client:', error);
     }
-    broadcast(Buffer.from(data).toString('utf-8'),ws);
+    broadcast(Buffer.from(data).toString('utf-8'), ws);
   });
 
   // Handle client disconnect
