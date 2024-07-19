@@ -26,7 +26,7 @@ function broadcast(message, excludeClient) {
 function broadcastUserData() {
   const onlineUsers = Array.from(clients.values()).filter(user => user.status === "online");
   const onlineUsersJSON = JSON.stringify(onlineUsers);
-  broadcast(onlineUsersJSON, wss);
+  broadcast(onlineUsersJSON);
 }
 
 // Handle incoming WebSocket connections
@@ -78,7 +78,7 @@ wss.on('connection', (ws) => {
     clients.delete(ws);
 
     // Notify all clients that someone has disconnected
-    broadcast('A client has disconnected.', ws);
+    broadcast('A client has disconnected.');
 
     // Broadcast user data to all clients
     broadcastUserData();
