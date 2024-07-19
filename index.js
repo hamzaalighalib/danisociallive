@@ -2,7 +2,7 @@ const http = require('http');
 const express = require('express');
 const WebSocket = require('ws');
 const cors = require('cors');  // Import CORS middleware
-
+ 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
