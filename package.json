@@ -1,10 +1,11 @@
 {
   "name": "nodejs",
   "version": "1.0.0",
-  "description": "",
+  "description": "A Node.js project with WebSocket support",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"  // Added start script
   },
   "keywords": [],
   "author": "",
@@ -13,8 +14,6 @@
     "@types/node": "^18.0.6",
     "express": "^4.19.2",
     "node-media-server": "^2.6.2",
-    "socket.io": "^4.7.5",
-    "socketio": "^1.0.0",
-    "ws": "^8.16.0"
+    "ws": "^8.16.0"  // Removed socket.io and socketio
   }
 }
