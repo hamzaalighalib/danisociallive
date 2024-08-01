@@ -1,82 +1,97 @@
+const express = require('express');
+const http = require('http');
 const WebSocket = require('ws');
+const { spawn } = require('child_process');
+const path = require('path');
+const cors = require('cors');
 
-// Create a WebSocket server
-const wss = new WebSocket.Server({ port: 3000 });
+const app = express();
+app.use(cors({ origin: '*' }))
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
 
-// Store connected clients and their data
-const clients = new Map();
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Function to send a message to all clients
-function broadcast(message, excludeClient) {
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN && client !== excludeClient) {
-      client.send(message);
-    }
+let clients = [];
+let ffmpeg = null;
+let ffmpegRunning = false;
+
+const startFFmpeg = () => {
+  if (ffmpegRunning) return;
+
+  ffmpegRunning = true;
+  ffmpeg = spawn('ffmpeg', [
+    '-i', 'pipe:0',
+    '-c:v', 'libx264',
+    '-preset', 'ultrafast',
+    '-tune', 'zerolatency',
+    '-c:a', 'aac',
+    '-f', 'hls',
+    '-hls_time', '1',
+    '-hls_list_size', '8',
+    '-hls_flags', 'delete_segments+split_by_time',
+    '-hls_segment_type', 'mpegts',
+    '-hls_segment_filename', 'public/live/segment_%03d.ts',
+    'public/live/output.m3u8'
+  ]);
+
+  ffmpeg.stdin.on('error', (e) => {
+    console.error('FFmpeg stdin error:', e);
+    stopFFmpeg();
   });
-}
 
-// Function to broadcast user data to all clients
-function broadcastUserData() {
-  const onlineUsers = Array.from(clients.values()).filter(user => user.status === "online");
-  const onlineUsersJSON = JSON.stringify(onlineUsers);
-  broadcast(onlineUsersJSON);
-}
+  ffmpeg.stderr.on('data', (data) => {
+    console.error('FFmpeg stderr:', data.toString());
+  });
 
-// Handle incoming WebSocket connections
+  ffmpeg.on('close', (code) => {
+    console.log('FFmpeg process closed with code', code);
+    stopFFmpeg();
+  });
+
+  ffmpeg.on('error', (error) => {
+    console.error('FFmpeg process error:', error);
+    stopFFmpeg();
+  });
+};
+
+const stopFFmpeg = () => {
+  if (ffmpeg) {
+    ffmpeg.stdin.end();
+    ffmpeg.kill();
+    ffmpeg = null;
+    ffmpegRunning = false;
+  }
+};
+
 wss.on('connection', (ws) => {
-  console.log('Client connected');
+  clients.push(ws);
+  console.log('New client connected');
 
-  // Send all user data to the new client, excluding the new client's data
-  const userDataArray = Array.from(clients.values());
-  const userDataJSON = JSON.stringify(userDataArray.filter(user => user !== clients.get(ws)));
-  if (userDataArray.length > 0) {
-    ws.send(userDataJSON);
+  if (!ffmpeg) {
+    startFFmpeg();
   }
 
-  // Handle new user data sent by the client
-  ws.on('message', (data) => {
-    console.log(Buffer.from(data).toString('utf-8'));
-    try {
-      const userData = JSON.parse(data);
-
-      // Check if the user is already in the array
-      const userExists = Array.from(clients.values()).some(user => user.id === userData.id);
-
-      if (!userExists) {
-        clients.set(ws, userData);
-
-        if (userData.status === "online") {
-          // Notify all clients that someone has connected
-          broadcast('A new client has connected.', ws);
-
-          // Broadcast user data to all clients
-          broadcastUserData();
-        } else {
-          broadcast(Buffer.from(data).toString('utf-8'), ws);
-        }
-      }
-    } catch (error) {
-      // If data is other...
-      broadcast(Buffer.from(data).toString('utf-8'), ws);
-      console.error('Invalid user data received from the client:', error);
+  ws.on('message', (message) => {
+    if (ffmpeg) {
+      ffmpeg.stdin.write(message);
     }
-    broadcast(Buffer.from(data).toString('utf-8'), ws);
   });
 
-  // Handle client disconnect
   ws.on('close', () => {
+    clients = clients.filter(client => client !== ws);
     console.log('Client disconnected');
 
-    // Remove the user data of the disconnected client
-    clients.delete(ws);
+    if (clients.length === 0) {
+      stopFFmpeg();
+    }
+  });
 
-    // Notify all clients that someone has disconnected
-    broadcast('A client has disconnected.');
-
-    // Broadcast user data to all clients
-    broadcastUserData();
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
   });
 });
 
-// Log server is running
-console.log('WebSocket server is listening on port 3000');
+server.listen(3000, () => {
+  console.log('Server is listening on port 3000');
+});
