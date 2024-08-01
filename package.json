@@ -1,18 +1,15 @@
 {
-  "name": "nodejs",
+  "name": "live-streaming-app",
   "version": "1.0.0",
-  "description": "A Node.js project with WebSocket support",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"  
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "main": "server.js",
   "dependencies": {
-    "@types/node": "^18.0.6",
-    "express": "^4.19.2",
-    "ws": "^8.16.0" 
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "fluent-ffmpeg": "^2.1.2",
+    "uuid": "^8.3.2",
+    "ws": "^8.2.3"
+  },
+  "scripts": {
+    "start": "node server.js"
   }
 }
