@@ -1,6 +1,7 @@
 {
   "name": "face-api-service",
   "version": "1.0.0",
+  "main": "index.js",
   "dependencies": {
     "@vladmandic/face-api": "^1.7.12",
     "@napi-rs/canvas": "^0.1.65"
