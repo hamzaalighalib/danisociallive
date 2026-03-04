@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "dependencies": {
     "@vladmandic/face-api": "^1.7.12",
-    "canvas": "^2.11.2"
+    "@napi-rs/canvas": "^0.1.65"
   }
 }
