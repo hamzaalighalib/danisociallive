@@ -1,15 +1,8 @@
 {
-  "name": "live-streaming-app",
+  "name": "face-api-service",
   "version": "1.0.0",
-  "main": "server.js",
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.17.1",
-    "fluent-ffmpeg": "^2.1.2",
-    "uuid": "^8.3.2",
-    "ws": "^8.2.3"
-  },
-  "scripts": {
-    "start": "node server.js"
+    "@vladmandic/face-api": "^1.7.12",
+    "canvas": "^2.11.2"
   }
 }
