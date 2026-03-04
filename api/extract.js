@@ -3,7 +3,7 @@ const { createCanvas, Image } = require('@napi-rs/canvas');
 const path = require('path');
 
 // 1. Setup the Canvas environment for Node.js
-const canvas = createCanvas(1, 1);
+const canvas = createCanvas(1, 1); 
 faceapi.env.monkeyPatch({ Canvas: canvas.constructor, Image });
 
 // 2. Function to load models from your root 'models' folder
